@@ -1,3 +1,3 @@
-# Hypixel Player Stats
+# Hypixel Player Stats - WIP
 
-A website that will track a players stats and display them on graphs
+A website that will track a player's stats on [hypixel.net](https://hypixel.net) and display them on graphs
