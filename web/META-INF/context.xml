@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Context path="/HypixelSkyblockStats">
+
+<Resource name="jdbc/db_pool" type="javax.sql.DataSource"
+              driverClassName="com.mysql.cj.jdbc.Driver"
+              username="pool_user" password="poolpsw!"
+              validationQuery="SELECT 1" validationQueryTimeout="-1"
+              initialSize="10" logAbandoned="true"
+              maxTotal="100" maxIdle="30"
+              removeAbandonedOnBorrow="true" removeAbandonedOnMaintenance="true"
+              removeAbandonedTimeout="60"
+              testOnBorrow="true" testOnReturn="false"
+              url="jdbc:mysql://localhost:3306/hypixel_player_stats?zeroDateTimeBehavior=CONVERT_TO_NULL&amp;serverTimezone=America/Chicago&amp;allowPublicKeyRetrieval=true&amp;sslMode=DISABLED" />
+
+</Context>
