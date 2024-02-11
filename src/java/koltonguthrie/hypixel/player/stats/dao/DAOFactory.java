@@ -55,5 +55,9 @@ public final class DAOFactory {
     public PlayerDAO getPlayer() {
         return new PlayerDAO(this);
     }
+    
+    public StatDAO getStat() {
+        return new StatDAO(this);
+    }
 
 }
