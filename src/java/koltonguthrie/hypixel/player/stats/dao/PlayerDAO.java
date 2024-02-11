@@ -109,7 +109,7 @@ public class PlayerDAO {
         json.put("success", false);
         json.put("message", "An unhandled error occurred.");
 
-        if (!map.containsKey("uuid") && !map.containsKey("id")) {
+        if (!(map.containsKey("uuid") || !map.containsKey("id"))) {
             json.put("status", HttpServletResponse.SC_BAD_REQUEST);
             json.put("message", "Bad request.");
             return json;
