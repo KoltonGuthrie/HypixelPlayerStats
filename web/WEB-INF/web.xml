@@ -4,6 +4,10 @@
         <servlet-name>PlayerServlet</servlet-name>
         <servlet-class>koltonguthrie.hypixel.player.stats.PlayerServlet</servlet-class>
     </servlet>
+    <servlet>
+        <servlet-name>StatsServlet</servlet-name>
+        <servlet-class>koltonguthrie.hypixel.player.stats.StatsServlet</servlet-class>
+    </servlet>
     <filter>
         <filter-name>CorsFilter</filter-name>
         <filter-class>org.apache.catalina.filters.CorsFilter</filter-class>
@@ -39,5 +43,9 @@
     <servlet-mapping>
         <servlet-name>PlayerServlet</servlet-name>
         <url-pattern>/api/player</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>StatsServlet</servlet-name>
+        <url-pattern>/api/stats</url-pattern>
     </servlet-mapping>
 </web-app>
