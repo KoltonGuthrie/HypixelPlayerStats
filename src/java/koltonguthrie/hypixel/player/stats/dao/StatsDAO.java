@@ -1,10 +1,10 @@
 package koltonguthrie.hypixel.player.stats.dao;
 
-public class StatDAO {
+public class StatsDAO {
     
     private final DAOFactory daoFactory;
 
-    StatDAO(DAOFactory daoFactory) {
+    StatsDAO(DAOFactory daoFactory) {
         this.daoFactory = daoFactory;
     }
     
