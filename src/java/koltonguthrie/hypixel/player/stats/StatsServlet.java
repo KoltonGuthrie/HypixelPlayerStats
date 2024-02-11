@@ -28,8 +28,17 @@ public class StatsServlet extends HttpServlet {
             
             if(request.getParameter("uuid") != null) map.put("uuid", request.getParameter("uuid"));
             if(request.getParameter("gamemode") != null) map.put("gamemode", request.getParameter("gamemode"));
+            if(request.getParameter("name") != null) map.put("name", request.getParameter("name"));
+            if(request.getParameter("value") != null) map.put("value", request.getParameter("value"));
+            if(request.getParameter("timestamp") != null) map.put("timestamp", request.getParameter("timestamp"));
             
-            out.write(Jsoner.serialize(daoFactory.getStats().list(map)));
+            if(request.getParameter("all") != null && request.getParameter("all").equals("true")) {
+                out.write(Jsoner.serialize(daoFactory.getStats().list(map)));
+            } else {
+                out.write(Jsoner.serialize(daoFactory.getStats().find(map)));
+            }
+                
+            
 
         }
         catch (Exception e) {

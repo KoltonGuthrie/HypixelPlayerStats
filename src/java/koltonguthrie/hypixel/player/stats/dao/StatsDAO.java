@@ -1,38 +1,36 @@
 package koltonguthrie.hypixel.player.stats.dao;
 
+import com.github.cliftonlabs.json_simple.JsonArray;
 import com.github.cliftonlabs.json_simple.JsonObject;
 import jakarta.servlet.http.HttpServletResponse;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.sql.Types;
 import java.util.HashMap;
 
 public class StatsDAO {
-    
+
     private final DAOFactory daoFactory;
-    
+
     final String QUERY_INSERT_STAT = "INSERT INTO stats (player_id, gamemode, stat_name, stat_value) VALUES (?,?,?,?);";
+    final String QUERY_FIND_STAT = "SELECT * FROM stats WHERE ( (? IS NULL OR id = ? ) AND ( ? IS NULL OR player_id = ? ) AND ( ? IS NULL OR gamemode = ? ) AND ( ? IS NULL OR stat_name = ? ) AND ( ? IS NULL OR stat_value = ? ) AND ( ? IS NULL OR timestamp = ? ) ) limit 1;";
+    final String QUERY_LIST_STAT = "SELECT * FROM stats WHERE ( (? IS NULL OR id = ? ) AND ( ? IS NULL OR player_id = ? ) AND ( ? IS NULL OR gamemode = ? ) AND ( ? IS NULL OR stat_name = ? ) AND ( ? IS NULL OR stat_value = ? ) AND ( ? IS NULL OR timestamp = ? ) );";
     
     StatsDAO(DAOFactory daoFactory) {
         this.daoFactory = daoFactory;
     }
 
     public JsonObject find(HashMap<String, Object> map) {
-        return new JsonObject();
-    }
-    
-    public JsonObject list(HashMap<String, Object> map) {
-        return new JsonObject();
-    }
-
-    public JsonObject create(HashMap<String, Object> map) {
         JsonObject json = new JsonObject();
         json.put("status", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         json.put("success", false);
         json.put("message", "An unhandled error occurred.");
+        
+        System.out.println(map);
 
-        if (!map.containsKey("uuid") || !map.containsKey("gamemode") || !map.containsKey("stat_name") || !map.containsKey("stat_value")) {
+        if (!map.containsKey("uuid")) {
             json.put("status", HttpServletResponse.SC_BAD_REQUEST);
             json.put("message", "Bad request.");
             return json;
@@ -43,50 +41,90 @@ public class StatsDAO {
         ResultSet rs = null;
 
         try {
-            
-            JsonObject player = (JsonObject) daoFactory.getPlayer().find(map).get("player");
 
-            if (player == null) {
-                json.put("success", true);
-                json.put("status", HttpServletResponse.SC_OK);
-                json.put("message", "Player with that UUID does not exist.");
-                
-                return json;
+            ps = conn.prepareStatement(QUERY_FIND_STAT);
+
+            if (map.containsKey("id")) {
+                ps.setInt(1, (Integer) map.get("id"));
+                ps.setInt(2, (Integer) map.get("id"));
+            } else {
+                ps.setNull(1, Types.INTEGER);
+                ps.setNull(2, Types.INTEGER);
             }
 
-            ps = conn.prepareStatement(QUERY_INSERT_STAT, Statement.RETURN_GENERATED_KEYS);
+            if (map.containsKey("uuid")) {
+                JsonObject p = (JsonObject) daoFactory.getPlayer().find(map).get("player");
+                if (p == null) {
+                    json.put("success", true);
+                    json.put("status", HttpServletResponse.SC_OK);
+                    json.put("message", "Player with that UUID does not exist.");
 
-            System.out.println(player);
+                    return json;
+                }
+                
+                ps.setInt(3, (Integer) p.get("id"));
+                ps.setInt(4, (Integer) p.get("id"));
+
+            } else {
+                ps.setNull(3, Types.INTEGER);
+                ps.setNull(4, Types.INTEGER);
+            }
             
-            ps.setInt(1, (Integer) player.get("id"));
-            ps.setString(2, (String) map.get("gamemode"));
-            ps.setString(3, (String) map.get("stat_name"));
-            ps.setFloat(4, Float.parseFloat((String) map.get("stat_value")));
+            if (map.containsKey("gamemode")) {
+                ps.setString(5, (String) map.get("gamemode"));
+                ps.setString(6, (String) map.get("gamemode"));
+            } else {
+                ps.setNull(5, Types.VARCHAR);
+                ps.setNull(6, Types.VARCHAR);
+            }
 
-            if(ps.executeUpdate() > 0) {
+            if (map.containsKey("name")) {
+                ps.setString(7, (String) map.get("name"));
+                ps.setString(8, (String) map.get("name"));
+            } else {
+                ps.setNull(7, Types.VARCHAR);
+                ps.setNull(8, Types.VARCHAR);
+            }
 
-                rs = ps.getGeneratedKeys();
+            if (map.containsKey("value")) {
+                ps.setInt(9, (Integer) map.get("value"));
+                ps.setInt(10, (Integer) map.get("value"));
+            } else {
+                ps.setNull(9, Types.INTEGER);
+                ps.setNull(10, Types.INTEGER);
+            }
+
+            if (map.containsKey("timestamp")) {
+                ps.setString(11, (String) map.get("value"));
+                ps.setString(12, (String) map.get("value"));
+            } else {
+                ps.setNull(11, Types.TIMESTAMP);
+                ps.setNull(12, Types.TIMESTAMP);
+            }
+
+            System.out.println(ps);
+            
+            if (ps.execute()) {
+                rs = ps.getResultSet();
 
                 json.put("success", true);
-                json.put("status", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                json.put("message", "Failed to created stat.");
+                json.put("status", HttpServletResponse.SC_OK);
+                json.put("message", "Unknown stat.");
 
-                Integer id = null;
                 if (rs.next()) {
-                    id = rs.getInt(1);
+                    JsonObject stat = new JsonObject();
+                    stat.put("id", rs.getInt("id"));
+                    stat.put("uuid", rs.getString("player_id"));
+                    stat.put("gamemode", rs.getString("gamemode"));
+                    stat.put("name", rs.getString("stat_name"));
+                    stat.put("value", rs.getInt("stat_value"));
+                    stat.put("timestamp", rs.getString("timestamp"));
+
+                    json.put("status", HttpServletResponse.SC_OK);
+                    json.put("message", "Found stat.");
+                    json.put("stat", stat);
                 }
 
-                if (id != null) {
-
-                    HashMap<String, Object> hm = new HashMap<>();
-                    hm.put("id", id);
-                
-                    json.put("status", HttpServletResponse.SC_CREATED);
-                    json.put("message", "Created stat.");
-                    json.put("stat", find(hm).get("stat"));
-
-                }
-                
             }
 
         } catch (Exception e) {
@@ -112,5 +150,227 @@ public class StatsDAO {
 
         return json;
     }
-    
+
+    public JsonObject list(HashMap<String, Object> map) {
+        JsonObject json = new JsonObject();
+        json.put("status", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        json.put("success", false);
+        json.put("message", "An unhandled error occurred.");
+        
+        System.out.println(map);
+
+        if (!map.containsKey("uuid")) {
+            json.put("status", HttpServletResponse.SC_BAD_REQUEST);
+            json.put("message", "Bad request.");
+            return json;
+        }
+
+        Connection conn = daoFactory.getConnection();
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+
+        try {
+
+            ps = conn.prepareStatement(QUERY_LIST_STAT);
+
+            if (map.containsKey("id")) {
+                ps.setInt(1, (Integer) map.get("id"));
+                ps.setInt(2, (Integer) map.get("id"));
+            } else {
+                ps.setNull(1, Types.INTEGER);
+                ps.setNull(2, Types.INTEGER);
+            }
+
+            if (map.containsKey("uuid")) {
+                JsonObject p = (JsonObject) daoFactory.getPlayer().find(map).get("player");
+                if (p == null) {
+                    json.put("success", true);
+                    json.put("status", HttpServletResponse.SC_OK);
+                    json.put("message", "Player with that UUID does not exist.");
+
+                    return json;
+                }
+                
+                ps.setInt(3, (Integer) p.get("id"));
+                ps.setInt(4, (Integer) p.get("id"));
+
+            } else {
+                ps.setNull(3, Types.INTEGER);
+                ps.setNull(4, Types.INTEGER);
+            }
+            
+            if (map.containsKey("gamemode")) {
+                ps.setString(5, (String) map.get("gamemode"));
+                ps.setString(6, (String) map.get("gamemode"));
+            } else {
+                ps.setNull(5, Types.VARCHAR);
+                ps.setNull(6, Types.VARCHAR);
+            }
+
+            if (map.containsKey("name")) {
+                ps.setString(7, (String) map.get("name"));
+                ps.setString(8, (String) map.get("name"));
+            } else {
+                ps.setNull(7, Types.VARCHAR);
+                ps.setNull(8, Types.VARCHAR);
+            }
+
+            if (map.containsKey("value")) {
+                ps.setInt(9, (Integer) map.get("value"));
+                ps.setInt(10, (Integer) map.get("value"));
+            } else {
+                ps.setNull(9, Types.INTEGER);
+                ps.setNull(10, Types.INTEGER);
+            }
+
+            if (map.containsKey("timestamp")) {
+                ps.setString(11, (String) map.get("value"));
+                ps.setString(12, (String) map.get("value"));
+            } else {
+                ps.setNull(11, Types.TIMESTAMP);
+                ps.setNull(12, Types.TIMESTAMP);
+            }
+
+            System.out.println(ps);
+            
+            if (ps.execute()) {
+                JsonArray stats = new JsonArray();
+                rs = ps.getResultSet();
+
+                json.put("success", true);
+                json.put("status", HttpServletResponse.SC_OK);
+                json.put("message", "Unknown stats.");
+
+                while (rs.next()) {
+                    JsonObject stat = new JsonObject();
+                    
+                    stat.put("id", rs.getInt("id"));
+                    stat.put("uuid", rs.getString("player_id"));
+                    stat.put("gamemode", rs.getString("gamemode"));
+                    stat.put("name", rs.getString("stat_name"));
+                    stat.put("value", rs.getInt("stat_value"));
+                    stat.put("timestamp", rs.getString("timestamp"));
+
+                    json.put("status", HttpServletResponse.SC_OK);
+                    json.put("message", "Found stats.");
+                    
+                    stats.add(stat);
+                    
+                }
+                
+                if(!stats.isEmpty()) json.put("stats", stats);
+
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (rs != null) {
+                try {
+                    rs.close();
+                    rs = null;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            if (ps != null) {
+                try {
+                    ps.close();
+                    ps = null;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        return json;
+    }
+
+    public JsonObject create(HashMap<String, Object> map) {
+        JsonObject json = new JsonObject();
+        json.put("status", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        json.put("success", false);
+        json.put("message", "An unhandled error occurred.");
+
+        if (!map.containsKey("uuid") || !map.containsKey("gamemode") || !map.containsKey("stat_name") || !map.containsKey("stat_value")) {
+            json.put("status", HttpServletResponse.SC_BAD_REQUEST);
+            json.put("message", "Bad request.");
+            return json;
+        }
+
+        Connection conn = daoFactory.getConnection();
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+
+        try {
+
+            JsonObject player = (JsonObject) daoFactory.getPlayer().find(map).get("player");
+
+            if (player == null) {
+                json.put("success", true);
+                json.put("status", HttpServletResponse.SC_OK);
+                json.put("message", "Player with that UUID does not exist.");
+
+                return json;
+            }
+
+            ps = conn.prepareStatement(QUERY_INSERT_STAT, Statement.RETURN_GENERATED_KEYS);
+
+            System.out.println(player);
+
+            ps.setInt(1, (Integer) player.get("id"));
+            ps.setString(2, (String) map.get("gamemode"));
+            ps.setString(3, (String) map.get("stat_name"));
+            ps.setFloat(4, Float.parseFloat((String) map.get("stat_value")));
+
+            if (ps.executeUpdate() > 0) {
+
+                rs = ps.getGeneratedKeys();
+
+                json.put("success", true);
+                json.put("status", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                json.put("message", "Failed to created stat.");
+
+                Integer id = null;
+                if (rs.next()) {
+                    id = rs.getInt(1);
+                }
+
+                if (id != null) {
+
+                    HashMap<String, Object> hm = new HashMap<>();
+                    hm.put("id", id);
+
+                    json.put("status", HttpServletResponse.SC_CREATED);
+                    json.put("message", "Created stat.");
+                    json.put("stat", find(hm).get("stat"));
+
+                }
+
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (rs != null) {
+                try {
+                    rs.close();
+                    rs = null;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            if (ps != null) {
+                try {
+                    ps.close();
+                    ps = null;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        return json;
+    }
+
 }

@@ -15,7 +15,7 @@ public class PlayerDAO {
     private final DAOFactory daoFactory;
 
     final String QUERY_INSERT_PLAYER = "INSERT INTO Players (uuid) VALUES (?);";
-    final String QUERY_FIND_PLAYER = "SELECT * FROM Players WHERE ( (? IS NULL OR id = ? ) AND ( ? IS NULL OR uuid = ? ) );";
+    final String QUERY_FIND_PLAYER = "SELECT * FROM Players WHERE ( (? IS NULL OR id = ? ) AND ( ? IS NULL OR uuid = ? ) ) limit 1;";
     final String QUERY_LIST_PLAYERS = "SELECT * FROM Players;";
 
     PlayerDAO(DAOFactory daoFactory) {
@@ -109,7 +109,7 @@ public class PlayerDAO {
         json.put("success", false);
         json.put("message", "An unhandled error occurred.");
 
-        if (!(map.containsKey("uuid") || !map.containsKey("id"))) {
+        if (!(map.containsKey("uuid") || map.containsKey("id"))) {
             json.put("status", HttpServletResponse.SC_BAD_REQUEST);
             json.put("message", "Bad request.");
             return json;
