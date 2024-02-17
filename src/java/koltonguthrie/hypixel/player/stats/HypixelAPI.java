@@ -6,20 +6,29 @@ import com.github.cliftonlabs.json_simple.Jsoner;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.math.BigDecimal;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
+import java.util.HashMap;
+import java.util.Set;
+import koltonguthrie.hypixel.player.stats.dao.DAOFactory;
 
 public class HypixelAPI {
     
-    static String API_KEY = System.getenv("API_KEY");
+    private String API_KEY = System.getenv("API_KEY");
+    private DAOFactory daoFactory;
     
-    public static void getPlayerStats(String uuid) {
+    public HypixelAPI(DAOFactory daoFactory) {
+        this.daoFactory = daoFactory;
+    }
+    
+    public void getPlayerStats(String uuid) {
         getAllSkyblockProfiles(uuid);
     }
     
-    private static void getAllSkyblockProfiles(String uuid) {
+    private void getAllSkyblockProfiles(String uuid) {
         try {
             JsonObject obj = jsonAPIResponse("https://api.hypixel.net/v2/skyblock/profiles?uuid=" + uuid);
             
@@ -30,8 +39,22 @@ public class HypixelAPI {
                 JsonObject player_data = (JsonObject) player.get("player_data");
                 JsonObject experience = (JsonObject) player_data.get("experience");
                 
-                System.out.println(profile.get("cute_name"));
-                System.out.println(experience);
+                if(experience == null) {
+                    continue;
+                }
+                
+                HashMap<String, Object> map = new HashMap<>();
+                
+                for(String key : experience.keySet()) {
+                    map.put("uuid", uuid);
+                    map.put("gamemode", "skyblock");
+                    map.put("subgamemode", profile.get("cute_name"));
+                    map.put("stat_name", key);
+                    map.put("stat_value", experience.get(key));
+                    
+                    daoFactory.getStats().create(map);
+                }
+                
             }
             
         } catch(Exception e) {
@@ -39,7 +62,7 @@ public class HypixelAPI {
         }
     }
     
-    private static JsonObject jsonAPIResponse(String _url) throws Exception {
+    private JsonObject jsonAPIResponse(String _url) throws Exception {
         if(API_KEY == null) {
             System.err.println("API KEY IS UNKNOWN");
             return null;

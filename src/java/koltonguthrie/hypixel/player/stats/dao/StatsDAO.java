@@ -3,10 +3,12 @@ package koltonguthrie.hypixel.player.stats.dao;
 import com.github.cliftonlabs.json_simple.JsonArray;
 import com.github.cliftonlabs.json_simple.JsonObject;
 import jakarta.servlet.http.HttpServletResponse;
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.HashMap;
 
@@ -14,9 +16,9 @@ public class StatsDAO {
 
     private final DAOFactory daoFactory;
 
-    final String QUERY_INSERT_STAT = "INSERT INTO stats (player_id, gamemode, stat_name, stat_value) VALUES (?,?,?,?);";
-    final String QUERY_FIND_STAT = "SELECT * FROM stats WHERE ( (? IS NULL OR id = ? ) AND ( ? IS NULL OR player_id = ? ) AND ( ? IS NULL OR gamemode = ? ) AND ( ? IS NULL OR stat_name = ? ) AND ( ? IS NULL OR stat_value = ? ) AND ( ? IS NULL OR timestamp = ? ) ) limit 1;";
-    final String QUERY_LIST_STAT = "SELECT * FROM stats WHERE ( (? IS NULL OR id = ? ) AND ( ? IS NULL OR player_id = ? ) AND ( ? IS NULL OR gamemode = ? ) AND ( ? IS NULL OR stat_name = ? ) AND ( ? IS NULL OR stat_value = ? ) AND ( ? IS NULL OR timestamp = ? ) );";
+    final String QUERY_INSERT_STAT = "INSERT INTO stats (player_id, gamemode, subgamemode, stat_name, stat_value) VALUES (?,?,?,?,?);";
+    final String QUERY_FIND_STAT = "SELECT * FROM stats WHERE ( (? IS NULL OR id = ? ) AND ( ? IS NULL OR player_id = ? ) AND ( ? IS NULL OR gamemode = ? ) AND ( ? IS NULL OR subgamemode = ? ) AND ( ? IS NULL OR stat_name = ? ) AND ( ? IS NULL OR stat_value = ? ) AND ( ? IS NULL OR `timestamp` = ? ) ) limit 1;";
+    final String QUERY_LIST_STAT = "SELECT * FROM stats WHERE ( (? IS NULL OR id = ? ) AND ( ? IS NULL OR player_id = ? ) AND ( ? IS NULL OR gamemode = ? ) AND ( ? IS NULL OR subgamemode = ? ) AND ( ? IS NULL OR stat_name = ? ) AND ( ? IS NULL OR stat_value = ? ) AND ( ? IS NULL OR `timestamp` >= ? ) AND ( ? IS NULL OR `timestamp` <= ? ) );";
     
     StatsDAO(DAOFactory daoFactory) {
         this.daoFactory = daoFactory;
@@ -27,8 +29,6 @@ public class StatsDAO {
         json.put("status", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         json.put("success", false);
         json.put("message", "An unhandled error occurred.");
-        
-        System.out.println(map);
 
         if (!map.containsKey("uuid")) {
             json.put("status", HttpServletResponse.SC_BAD_REQUEST);
@@ -77,33 +77,39 @@ public class StatsDAO {
                 ps.setNull(5, Types.VARCHAR);
                 ps.setNull(6, Types.VARCHAR);
             }
-
-            if (map.containsKey("name")) {
-                ps.setString(7, (String) map.get("name"));
-                ps.setString(8, (String) map.get("name"));
+            
+            if (map.containsKey("subgamemode")) {
+                ps.setString(7, (String) map.get("gamemode"));
+                ps.setString(8, (String) map.get("gamemode"));
             } else {
                 ps.setNull(7, Types.VARCHAR);
                 ps.setNull(8, Types.VARCHAR);
             }
 
+            if (map.containsKey("name")) {
+                ps.setString(9, (String) map.get("name"));
+                ps.setString(10, (String) map.get("name"));
+            } else {
+                ps.setNull(9, Types.VARCHAR);
+                ps.setNull(10, Types.VARCHAR);
+            }
+
             if (map.containsKey("value")) {
-                ps.setInt(9, (Integer) map.get("value"));
-                ps.setInt(10, (Integer) map.get("value"));
+                ps.setBigDecimal(11, (BigDecimal) map.get("value"));
+                ps.setBigDecimal(12, (BigDecimal) map.get("value"));
             } else {
-                ps.setNull(9, Types.INTEGER);
-                ps.setNull(10, Types.INTEGER);
+                ps.setNull(11, Types.DECIMAL);
+                ps.setNull(12, Types.DECIMAL);
             }
 
-            if (map.containsKey("timestamp")) {
-                ps.setString(11, (String) map.get("value"));
-                ps.setString(12, (String) map.get("value"));
+            if (map.containsKey("time")) {
+                ps.setTimestamp(13, new Timestamp(Long.parseLong((String) map.get("time"))));
+                ps.setTimestamp(14, new Timestamp(Long.parseLong((String) map.get("time"))));
             } else {
-                ps.setNull(11, Types.TIMESTAMP);
-                ps.setNull(12, Types.TIMESTAMP);
+                ps.setNull(13, Types.TIMESTAMP);
+                ps.setNull(14, Types.TIMESTAMP);
             }
 
-            System.out.println(ps);
-            
             if (ps.execute()) {
                 rs = ps.getResultSet();
 
@@ -117,7 +123,7 @@ public class StatsDAO {
                     stat.put("uuid", rs.getString("player_id"));
                     stat.put("gamemode", rs.getString("gamemode"));
                     stat.put("name", rs.getString("stat_name"));
-                    stat.put("value", rs.getInt("stat_value"));
+                    stat.put("value", rs.getBigDecimal("stat_value"));
                     stat.put("timestamp", rs.getString("timestamp"));
 
                     json.put("status", HttpServletResponse.SC_OK);
@@ -157,8 +163,6 @@ public class StatsDAO {
         json.put("success", false);
         json.put("message", "An unhandled error occurred.");
         
-        System.out.println(map);
-
         if (!map.containsKey("uuid")) {
             json.put("status", HttpServletResponse.SC_BAD_REQUEST);
             json.put("message", "Bad request.");
@@ -206,33 +210,44 @@ public class StatsDAO {
                 ps.setNull(5, Types.VARCHAR);
                 ps.setNull(6, Types.VARCHAR);
             }
-
-            if (map.containsKey("name")) {
-                ps.setString(7, (String) map.get("name"));
-                ps.setString(8, (String) map.get("name"));
+            
+            if (map.containsKey("subgamemode")) {
+                ps.setString(7, (String) map.get("gamemode"));
+                ps.setString(8, (String) map.get("gamemode"));
             } else {
                 ps.setNull(7, Types.VARCHAR);
                 ps.setNull(8, Types.VARCHAR);
             }
 
+            if (map.containsKey("name")) {
+                ps.setString(9, (String) map.get("name"));
+                ps.setString(10, (String) map.get("name"));
+            } else {
+                ps.setNull(9, Types.VARCHAR);
+                ps.setNull(10, Types.VARCHAR);
+            }
+
             if (map.containsKey("value")) {
-                ps.setInt(9, (Integer) map.get("value"));
-                ps.setInt(10, (Integer) map.get("value"));
+                ps.setBigDecimal(11, (BigDecimal) map.get("value"));
+                ps.setBigDecimal(12, (BigDecimal) map.get("value"));
             } else {
-                ps.setNull(9, Types.INTEGER);
-                ps.setNull(10, Types.INTEGER);
+                ps.setNull(11, Types.DECIMAL);
+                ps.setNull(12, Types.DECIMAL);
             }
 
-            if (map.containsKey("timestamp")) {
-                ps.setString(11, (String) map.get("value"));
-                ps.setString(12, (String) map.get("value"));
+            if (map.containsKey("start") && map.containsKey("end")) {
+                ps.setTimestamp(13, new Timestamp(Long.parseLong((String) map.get("start"))));
+                ps.setTimestamp(14, new Timestamp(Long.parseLong((String) map.get("start"))));
+                
+                ps.setTimestamp(15, new Timestamp(Long.parseLong((String) map.get("end"))));
+                ps.setTimestamp(16, new Timestamp(Long.parseLong((String) map.get("end"))));
             } else {
-                ps.setNull(11, Types.TIMESTAMP);
-                ps.setNull(12, Types.TIMESTAMP);
+                ps.setNull(13, Types.TIMESTAMP);
+                ps.setNull(14, Types.TIMESTAMP);
+                ps.setNull(15, Types.TIMESTAMP);
+                ps.setNull(16, Types.TIMESTAMP);
             }
 
-            System.out.println(ps);
-            
             if (ps.execute()) {
                 JsonArray stats = new JsonArray();
                 rs = ps.getResultSet();
@@ -248,7 +263,7 @@ public class StatsDAO {
                     stat.put("uuid", rs.getString("player_id"));
                     stat.put("gamemode", rs.getString("gamemode"));
                     stat.put("name", rs.getString("stat_name"));
-                    stat.put("value", rs.getInt("stat_value"));
+                    stat.put("value", rs.getBigDecimal("stat_value"));
                     stat.put("timestamp", rs.getString("timestamp"));
 
                     json.put("status", HttpServletResponse.SC_OK);
@@ -316,12 +331,11 @@ public class StatsDAO {
 
             ps = conn.prepareStatement(QUERY_INSERT_STAT, Statement.RETURN_GENERATED_KEYS);
 
-            System.out.println(player);
-
             ps.setInt(1, (Integer) player.get("id"));
             ps.setString(2, (String) map.get("gamemode"));
-            ps.setString(3, (String) map.get("stat_name"));
-            ps.setFloat(4, Float.parseFloat((String) map.get("stat_value")));
+            ps.setString(3, (String) map.get("subgamemode"));
+            ps.setString(4, (String) map.get("stat_name"));
+            ps.setBigDecimal(5, (BigDecimal) map.get("stat_value"));
 
             if (ps.executeUpdate() > 0) {
 

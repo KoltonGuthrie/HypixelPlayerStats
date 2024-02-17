@@ -6,15 +6,23 @@ import java.util.TimeZone;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import koltonguthrie.hypixel.player.stats.dao.DAOFactory;
 
 public class Main {
     
-    private static ScheduledExecutorService scheduler = null;
+    private ScheduledExecutorService scheduler = null;
+    private DAOFactory daoFactory;
+    private HypixelAPI API;
 
     
     public Main() {
-        System.out.println("EEEEEEEEEEEEEEEEEEE");
-        return;
+        daoFactory = new DAOFactory();
+        API = new HypixelAPI(daoFactory);
+        
+    }
+    
+    public DAOFactory getDAOFactory() {
+        return daoFactory;
     }
     
     public boolean startTask(boolean runAtStart) {
@@ -34,14 +42,14 @@ public class Main {
         }
     }
     
-    private static void updateData() {
+    private void updateData() {
         String[] uuids = {"bf8846c7-7f16-4174-a4f7-ebd979d6641f"};
         for(String uuid : uuids) {
-            HypixelAPI.getPlayerStats(uuid.replaceAll("-", ""));
+            API.getPlayerStats(uuid.replaceAll("-", ""));
         }
     }
 
-    private static void scheduleDailyTask(boolean runAtStart) {
+    private void scheduleDailyTask(boolean runAtStart) {
         
         if(runAtStart) {
             updateData();
@@ -62,7 +70,7 @@ public class Main {
         }, initialDelay, 24 * 60 * 60 * 1000, TimeUnit.MILLISECONDS);
     }
 
-    private static long calculateInitialDelay(Calendar estCalendar) {
+    private long calculateInitialDelay(Calendar estCalendar) {
         estCalendar.set(Calendar.HOUR_OF_DAY, 0);
         estCalendar.set(Calendar.MINUTE, 0);
         estCalendar.set(Calendar.SECOND, 0);
@@ -78,4 +86,6 @@ public class Main {
 
         return nextMidnightMillis - currentTimeMillis;
     }
+    
+    
 }

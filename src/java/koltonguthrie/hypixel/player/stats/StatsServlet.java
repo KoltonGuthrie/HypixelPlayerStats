@@ -31,6 +31,8 @@ public class StatsServlet extends HttpServlet {
             if(request.getParameter("name") != null) map.put("name", request.getParameter("name"));
             if(request.getParameter("value") != null) map.put("value", request.getParameter("value"));
             if(request.getParameter("timestamp") != null) map.put("timestamp", request.getParameter("timestamp"));
+            if(request.getParameter("start") != null) map.put("start", request.getParameter("start"));
+            if(request.getParameter("end") != null) map.put("end", request.getParameter("end"));
             
             if(request.getParameter("all") != null && request.getParameter("all").equals("true")) {
                 out.write(Jsoner.serialize(daoFactory.getStats().list(map)));
