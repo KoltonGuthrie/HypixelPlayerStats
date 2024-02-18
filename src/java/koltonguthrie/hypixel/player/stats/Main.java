@@ -64,7 +64,6 @@ public class Main {
         scheduler.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
-                // Your daily task logic goes here
                 System.out.println("Executing daily task at: " + new Date());
             }
         }, initialDelay, 24 * 60 * 60 * 1000, TimeUnit.MILLISECONDS);

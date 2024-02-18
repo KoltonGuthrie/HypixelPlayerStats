@@ -46,11 +46,7 @@ public class PlayerServlet extends HttpServlet {
 
             HashMap<String, Object> map = getParameters(request);
             
-            System.out.println("A");
-            
             out.write(Jsoner.serialize(daoFactory.getPlayer().create(map)));
-            
-            System.out.println("B");
             
         }
         catch (Exception e) {

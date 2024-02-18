@@ -1,68 +1,10 @@
 <!DOCTYPE html>
 <html>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="scripts/home.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
 <body>
 <canvas id="myChart" style="width:100%;max-width:700px"></canvas>
-
-<script>
-var xyValues = [
-  {x:50, y:70},
-  {x:60, y:80},
-  {x:70, y:80},
-  {x:80, y:90},
-  {x:90, y:90},
-  {x:100, y:90},
-  {x:105, y:95},
-  {x:110, y:100},
-  {x:120, y:110},
-  {x:130, y:140},
-  {x:140, y:140},
-  {x:150, y:150}
-];
-
-function getMinYValue(json) {
-	let min = json[0].y;
-    for(let i = 0; i < json.length; i++) {
-    	if(min > json[i].y) min = json[i].y;
-	}
-	return min;
-}
-
-function getXValues(json) {
-	let x = [];
-    for(let i = 0; i < json.length; i++) {
-		x.push(json[i].x);
-	}
-	return x;
-}
-
-function getYValues(json) {
-	let y = [];
-    for(let i = 0; i < json.length; i++) {
-		y.push(json[i].y);
-	}
-	return y;
-}
-
-new Chart("myChart", {
-  type: "line",
-  data: {
-	labels: getXValues(xyValues),
-    datasets: [{
-      pointRadius: 2,
-      pointBackgroundColor: "rgb(0,0,255)",
-      data: getYValues(xyValues)
-    }]
-  },
-  options: {
-    legend: {display: false},
-    scales: {
-      xAxes: [{ticks: {min: 40, max:160}}],
-      yAxes: [{ticks: {min: getMinYValue(xyValues)-10, max:160}}],
-    }
-  }
-});
-</script>
 
 </body>
 </html>

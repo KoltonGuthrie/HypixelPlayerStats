@@ -17,8 +17,10 @@ public class StatsDAO {
     private final DAOFactory daoFactory;
 
     final String QUERY_INSERT_STAT = "INSERT INTO stats (player_id, gamemode, subgamemode, stat_name, stat_value) VALUES (?,?,?,?,?);";
-    final String QUERY_FIND_STAT = "SELECT * FROM stats WHERE ( (? IS NULL OR id = ? ) AND ( ? IS NULL OR player_id = ? ) AND ( ? IS NULL OR gamemode = ? ) AND ( ? IS NULL OR subgamemode = ? ) AND ( ? IS NULL OR stat_name = ? ) AND ( ? IS NULL OR stat_value = ? ) AND ( ? IS NULL OR `timestamp` = ? ) ) limit 1;";
-    final String QUERY_LIST_STAT = "SELECT * FROM stats WHERE ( (? IS NULL OR id = ? ) AND ( ? IS NULL OR player_id = ? ) AND ( ? IS NULL OR gamemode = ? ) AND ( ? IS NULL OR subgamemode = ? ) AND ( ? IS NULL OR stat_name = ? ) AND ( ? IS NULL OR stat_value = ? ) AND ( ? IS NULL OR `timestamp` >= ? ) AND ( ? IS NULL OR `timestamp` <= ? ) );";
+    final String QUERY_FIND_STAT = " SELECT * FROM (SELECT *, CONVERT_TZ(`timestamp`, @@session.time_zone, '+00:00') AS `utc_timestamp` FROM stats) as subquery"
+                                 + " WHERE ( (? IS NULL OR id = ? ) AND ( ? IS NULL OR player_id = ? ) AND ( ? IS NULL OR gamemode = ? ) AND ( ? IS NULL OR subgamemode = ? ) AND ( ? IS NULL OR stat_name = ? ) AND ( ? IS NULL OR stat_value = ? ) AND ( ? IS NULL OR `utc_timestamp` = ? ) ) limit 1;";
+    final String QUERY_LIST_STAT = " SELECT * FROM (SELECT *, CONVERT_TZ(`timestamp`, @@session.time_zone, '+00:00') AS `utc_timestamp` FROM stats) as subquery"
+                                 + " WHERE ( (? IS NULL OR id = ? ) AND ( ? IS NULL OR player_id = ? ) AND ( ? IS NULL OR gamemode = ? ) AND ( ? IS NULL OR subgamemode = ? ) AND ( ? IS NULL OR stat_name = ? ) AND ( ? IS NULL OR stat_value = ? ) AND ( ? IS NULL OR `utc_timestamp` >= ? ) AND ( ? IS NULL OR `utc_timestamp` <= ? ) ) ORDER BY `utc_timestamp`;";
     
     StatsDAO(DAOFactory daoFactory) {
         this.daoFactory = daoFactory;
@@ -79,8 +81,8 @@ public class StatsDAO {
             }
             
             if (map.containsKey("subgamemode")) {
-                ps.setString(7, (String) map.get("gamemode"));
-                ps.setString(8, (String) map.get("gamemode"));
+                ps.setString(7, (String) map.get("subgamemode"));
+                ps.setString(8, (String) map.get("subgamemode"));
             } else {
                 ps.setNull(7, Types.VARCHAR);
                 ps.setNull(8, Types.VARCHAR);
@@ -102,12 +104,17 @@ public class StatsDAO {
                 ps.setNull(12, Types.DECIMAL);
             }
 
-            if (map.containsKey("time")) {
-                ps.setTimestamp(13, new Timestamp(Long.parseLong((String) map.get("time"))));
-                ps.setTimestamp(14, new Timestamp(Long.parseLong((String) map.get("time"))));
+            if (map.containsKey("start") && map.containsKey("end")) {
+                ps.setTimestamp(13, new Timestamp(Long.parseLong((String) map.get("start"))));
+                ps.setTimestamp(14, new Timestamp(Long.parseLong((String) map.get("start"))));
+                
+                ps.setTimestamp(15, new Timestamp(Long.parseLong((String) map.get("end"))));
+                ps.setTimestamp(16, new Timestamp(Long.parseLong((String) map.get("end"))));
             } else {
                 ps.setNull(13, Types.TIMESTAMP);
                 ps.setNull(14, Types.TIMESTAMP);
+                ps.setNull(15, Types.TIMESTAMP);
+                ps.setNull(16, Types.TIMESTAMP);
             }
 
             if (ps.execute()) {
@@ -124,7 +131,7 @@ public class StatsDAO {
                     stat.put("gamemode", rs.getString("gamemode"));
                     stat.put("name", rs.getString("stat_name"));
                     stat.put("value", rs.getBigDecimal("stat_value"));
-                    stat.put("timestamp", rs.getString("timestamp"));
+                    stat.put("utc_timestamp", rs.getString("utc_timestamp"));
 
                     json.put("status", HttpServletResponse.SC_OK);
                     json.put("message", "Found stat.");
@@ -212,8 +219,8 @@ public class StatsDAO {
             }
             
             if (map.containsKey("subgamemode")) {
-                ps.setString(7, (String) map.get("gamemode"));
-                ps.setString(8, (String) map.get("gamemode"));
+                ps.setString(7, (String) map.get("subgamemode"));
+                ps.setString(8, (String) map.get("subgamemode"));
             } else {
                 ps.setNull(7, Types.VARCHAR);
                 ps.setNull(8, Types.VARCHAR);
@@ -247,7 +254,7 @@ public class StatsDAO {
                 ps.setNull(15, Types.TIMESTAMP);
                 ps.setNull(16, Types.TIMESTAMP);
             }
-
+            
             if (ps.execute()) {
                 JsonArray stats = new JsonArray();
                 rs = ps.getResultSet();
@@ -264,7 +271,7 @@ public class StatsDAO {
                     stat.put("gamemode", rs.getString("gamemode"));
                     stat.put("name", rs.getString("stat_name"));
                     stat.put("value", rs.getBigDecimal("stat_value"));
-                    stat.put("timestamp", rs.getString("timestamp"));
+                    stat.put("utc_timestamp", rs.getString("utc_timestamp"));
 
                     json.put("status", HttpServletResponse.SC_OK);
                     json.put("message", "Found stats.");

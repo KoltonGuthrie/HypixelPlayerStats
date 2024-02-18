@@ -28,6 +28,7 @@ public class StatsServlet extends HttpServlet {
             
             if(request.getParameter("uuid") != null) map.put("uuid", request.getParameter("uuid"));
             if(request.getParameter("gamemode") != null) map.put("gamemode", request.getParameter("gamemode"));
+            if(request.getParameter("subgamemode") != null) map.put("subgamemode", request.getParameter("subgamemode"));
             if(request.getParameter("name") != null) map.put("name", request.getParameter("name"));
             if(request.getParameter("value") != null) map.put("value", request.getParameter("value"));
             if(request.getParameter("timestamp") != null) map.put("timestamp", request.getParameter("timestamp"));
