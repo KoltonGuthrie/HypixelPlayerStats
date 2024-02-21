@@ -1,5 +1,6 @@
 package koltonguthrie.hypixel.player.stats;
 
+import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
@@ -42,17 +43,19 @@ public class Main {
         }
     }
     
-    private void updateData() {
-        String[] uuids = {"bf8846c7-7f16-4174-a4f7-ebd979d6641f"};
+    private void updateData(Timestamp ts) {
+        System.out.println("Timestamp: " + ts);
+        String[] uuids = {"bf8846c7-7f16-4174-a4f7-ebd979d6641f", "7fded44a-22f6-4932-a86e-a0592715e09f"};
         for(String uuid : uuids) {
-            API.getPlayerStats(uuid.replaceAll("-", ""));
+            API.getPlayerStats(uuid.replaceAll("-", ""), ts);
         }
     }
 
     private void scheduleDailyTask(boolean runAtStart) {
         
         if(runAtStart) {
-            updateData();
+            Timestamp ts = new Timestamp(new Date().getTime());
+            updateData(ts);
         }
         
         scheduler = Executors.newScheduledThreadPool(1);
@@ -65,6 +68,8 @@ public class Main {
             @Override
             public void run() {
                 System.out.println("Executing daily task at: " + new Date());
+                Timestamp ts = new Timestamp(new Date().getTime());
+                updateData(ts);
             }
         }, initialDelay, 24 * 60 * 60 * 1000, TimeUnit.MILLISECONDS);
     }

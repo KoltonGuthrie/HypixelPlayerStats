@@ -1,72 +1,116 @@
 let stats = [];
+let graph = null;
 
-function getPlayerStats(uuid) {
+function getPlayerStats(name) {
     stats = [];
-    const data = {"gamemode": "skyblock", "name": "SKILL_COMBAT", "subgamemode": "Papaya", "uuid": uuid, "all": true};
+    const data = {"gamemode": "skyblock", "subgamemode": "Papaya", "name": name, "uuid": UUID, "all": true};
 
     $.ajax({
 
         url: "api/stats",
         method: "GET",
         data: data,
-        //data: $("#searchform :input").filter(function() { return $(this).val() !== ''; }).serialize(),
         dataType: "json",
         success: function (res) {
-            if (res == null || res.stats == null)
+            if (res == null || res.stats == null || res.stats.length < 2)
                 return;
 
-            for (let i = 0; i < res.stats.length; i++) {
-                const stat = res.stats[i];
-                const next_stat = res.stats[i+1];
-                if(next_stat == null) break;
-                addValue(stat.utc_timestamp, getDifference(stat.value, next_stat.value));   
-            }
+            for (let i = 1; i < res.stats.length; i++) {
+                const current_stat = res.stats[i];
+                const stat_last = res.stats[i - 1];
 
+                const ts = current_stat.timestamp + " EST";
+
+                addValue(ts, getDifference(current_stat.value, stat_last.value), {"timestamp": ts});
+            }
+            console.log(res)
             createGraph();
         }
 
     });
 }
 
-function addValue(date, value) {
-    const d = new Date(date).toLocaleDateString();
-    
+function addValue(date, value, extra = {}) {
+    const options = {
+        timeZone: 'America/New_York',
+    };
+
+    const d = new Date(date).toLocaleDateString(undefined, options);
+
     let found = false;
-    
-    for(let i = 0; i < stats.length; i++) {
-        if(stats[i].x === d) {
+
+    for (let i = 0; i < stats.length; i++) {
+        if (stats[i].x === d) {
             found = true;
-            stats[i] = { x: d, y: stats[i].y + value };
+            stats[i] = {x: d, y: stats[i].y + value, extra: extra};
             break;
         }
     }
 
-    if(!found) {
-        stats.push({x: d, y: value });
-    }
+    if (!found) {
+        stats.push({x: d, y: value, extra: extra});
+}
 }
 
 function getDifference(val1 = 0, val2 = 0) {
-    return Math.abs(val1 - val2);
+    return val1 - val2;
 }
 
 function createGraph() {
-    new Chart("myChart", {
+    if (graph != null)
+        graph.destroy();
+    graph = new Chart("myChart", {
         type: "line",
         data: {
             labels: getXValues(stats),
             datasets: [{
-                    pointRadius: 2,
-                    pointBackgroundColor: "rgb(0,0,255)",
+                    label: 'Dataset 2',
+                    fill: true,
+                    lineTension: 0.0,
+                    pointRadius: 0,
+                    hoverRadius: 0,
+                    backgroundColor: "rgb(120,250,0, 0.25)",
+                    borderColor: "rgb(120,250,0, 1.0)",
                     data: getYValues(stats)
                 }]
         },
         options: {
-            legend: {display: false},
+            animation: {
+                duration: 0
+            },
             scales: {
-                xAxes: [{ticks: {min: 40, max: 160}}],
-                yAxes: [{ticks: {min: getMinYValue(stats) - 10, max: getMaxYValue(stats) + 10}}],
-            }
+                y: {
+                    offset: true,
+                    min: getMinYValue(stats) < 0 ? getMinYValue(stats) : 0,
+                    ticks: {
+                        callback: function (value, index, array) {
+                            return (Math.abs(value) < 1000000) ? (Math.abs(value) < 1000) ? value : value / 1000 + 'K' : value / 1000000 + 'M';
+                        }
+                    }
+                },
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        title: function (t, d) {
+                            return null;
+                        },
+                        label: function (context) {
+                            let value = context.raw || 0;
+                            return ((value >= 0 ? " +" : " -") + ((Math.abs(value) < 1000000) ? (Math.abs(value) < 1000) ? value : value / 1000 + 'K' : value / 1000000 + 'M'));
+                        }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                    },
+                    intersect: false,
+                    //displayColors: false,
+                    bodyFont: {
+                        size: 16.5
+                    },
+                }
+            },
+
         }
     });
 }

@@ -11,6 +11,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
+import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Set;
 import koltonguthrie.hypixel.player.stats.dao.DAOFactory;
@@ -24,11 +25,11 @@ public class HypixelAPI {
         this.daoFactory = daoFactory;
     }
     
-    public void getPlayerStats(String uuid) {
-        getAllSkyblockProfiles(uuid);
+    public void getPlayerStats(String uuid, Timestamp ts) {
+        getAllSkyblockProfiles(uuid, ts);
     }
     
-    private void getAllSkyblockProfiles(String uuid) {
+    private void getAllSkyblockProfiles(String uuid, Timestamp ts) {
         try {
             JsonObject obj = jsonAPIResponse("https://api.hypixel.net/v2/skyblock/profiles?uuid=" + uuid);
             
@@ -37,20 +38,54 @@ public class HypixelAPI {
                 JsonObject members = (JsonObject) profile.get("members");
                 JsonObject player = (JsonObject) members.get(uuid);
                 JsonObject player_data = (JsonObject) player.get("player_data");
+                JsonObject dungeons = (JsonObject) player.get("dungeons");
+                
+                BigDecimal catacombs_experience = null;
+                if(dungeons != null) {
+                    JsonObject dungeon_type = (JsonObject) dungeons.get("dungeon_types");
+                    if(dungeon_type != null) {
+                        JsonObject catacombs = (JsonObject) dungeon_type.get("catacombs");
+                        if(catacombs != null) {
+                            catacombs_experience = (BigDecimal) catacombs.get("experience");
+                        }
+                    }
+                }
+                
+                
                 JsonObject experience = (JsonObject) player_data.get("experience");
                 
                 if(experience == null) {
                     continue;
                 }
                 
-                HashMap<String, Object> map = new HashMap<>();
+                
+                
+                System.out.println(catacombs_experience);
+                
+                if(catacombs_experience != null) {
+                    HashMap<String, Object> map = new HashMap<>();
+                    
+                    map.put("uuid", uuid);
+                    map.put("gamemode", "skyblock");
+                    map.put("subgamemode", profile.get("cute_name"));
+                    map.put("stat_name", "SKILL_DUNGEONEERING");
+                    map.put("stat_value", catacombs_experience);
+                    map.put("timestamp", ts);
+                    
+                    daoFactory.getStats().create(map);
+                    
+                }
                 
                 for(String key : experience.keySet()) {
+                    HashMap<String, Object> map = new HashMap<>();
+                    if("SKILL_DUNGEONEERING".equals(key)) continue;
+                    
                     map.put("uuid", uuid);
                     map.put("gamemode", "skyblock");
                     map.put("subgamemode", profile.get("cute_name"));
                     map.put("stat_name", key);
                     map.put("stat_value", experience.get(key));
+                    map.put("timestamp", ts);
                     
                     daoFactory.getStats().create(map);
                 }

@@ -10,17 +10,20 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.util.Date;
 import java.util.HashMap;
 
 public class StatsDAO {
 
     private final DAOFactory daoFactory;
 
-    final String QUERY_INSERT_STAT = "INSERT INTO stats (player_id, gamemode, subgamemode, stat_name, stat_value) VALUES (?,?,?,?,?);";
-    final String QUERY_FIND_STAT = " SELECT * FROM (SELECT *, CONVERT_TZ(`timestamp`, @@session.time_zone, '+00:00') AS `utc_timestamp` FROM stats) as subquery"
+    final String QUERY_INSERT_STAT = "INSERT INTO stats (player_id, gamemode, subgamemode, stat_name, stat_value, timestamp) VALUES (?,?,?,?,?,?);";
+    final String QUERY_FIND_STAT = " SELECT * FROM (SELECT *, CONVERT_TZ(`timestamp`, @@session.time_zone, '+00:00') AS `utc_timestamp`, CONVERT_TZ(`timestamp`, @@session.time_zone, '-05:00') AS `est_timestamp` FROM stats) as subquery"
                                  + " WHERE ( (? IS NULL OR id = ? ) AND ( ? IS NULL OR player_id = ? ) AND ( ? IS NULL OR gamemode = ? ) AND ( ? IS NULL OR subgamemode = ? ) AND ( ? IS NULL OR stat_name = ? ) AND ( ? IS NULL OR stat_value = ? ) AND ( ? IS NULL OR `utc_timestamp` = ? ) ) limit 1;";
-    final String QUERY_LIST_STAT = " SELECT * FROM (SELECT *, CONVERT_TZ(`timestamp`, @@session.time_zone, '+00:00') AS `utc_timestamp` FROM stats) as subquery"
+    final String QUERY_LIST_STAT = " SELECT * FROM (SELECT *, CONVERT_TZ(`timestamp`, @@session.time_zone, '+00:00') AS `utc_timestamp`, CONVERT_TZ(`timestamp`, @@session.time_zone, '-05:00') AS `est_timestamp` FROM stats) as subquery"
                                  + " WHERE ( (? IS NULL OR id = ? ) AND ( ? IS NULL OR player_id = ? ) AND ( ? IS NULL OR gamemode = ? ) AND ( ? IS NULL OR subgamemode = ? ) AND ( ? IS NULL OR stat_name = ? ) AND ( ? IS NULL OR stat_value = ? ) AND ( ? IS NULL OR `utc_timestamp` >= ? ) AND ( ? IS NULL OR `utc_timestamp` <= ? ) ) ORDER BY `utc_timestamp`;";
+    final String QUERY_LIST_GAMEMODES = "SELECT DISTINCT gamemode FROM stats WHERE player_id = ?;";
+    final String QUERY_LIST_SUBGAMEMODES = "SELECT DISTINCT gamemode, subgamemode FROM stats WHERE player_id = ?;";
     
     StatsDAO(DAOFactory daoFactory) {
         this.daoFactory = daoFactory;
@@ -29,7 +32,7 @@ public class StatsDAO {
     public JsonObject find(HashMap<String, Object> map) {
         JsonObject json = new JsonObject();
         json.put("status", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        json.put("success", false);
+        json.put("success", false); 
         json.put("message", "An unhandled error occurred.");
 
         if (!map.containsKey("uuid")) {
@@ -131,6 +134,7 @@ public class StatsDAO {
                     stat.put("gamemode", rs.getString("gamemode"));
                     stat.put("name", rs.getString("stat_name"));
                     stat.put("value", rs.getBigDecimal("stat_value"));
+                    stat.put("timestamp", rs.getString("est_timestamp"));
                     stat.put("utc_timestamp", rs.getString("utc_timestamp"));
 
                     json.put("status", HttpServletResponse.SC_OK);
@@ -271,6 +275,7 @@ public class StatsDAO {
                     stat.put("gamemode", rs.getString("gamemode"));
                     stat.put("name", rs.getString("stat_name"));
                     stat.put("value", rs.getBigDecimal("stat_value"));
+                    stat.put("timestamp", rs.getString("est_timestamp"));
                     stat.put("utc_timestamp", rs.getString("utc_timestamp"));
 
                     json.put("status", HttpServletResponse.SC_OK);
@@ -343,6 +348,11 @@ public class StatsDAO {
             ps.setString(3, (String) map.get("subgamemode"));
             ps.setString(4, (String) map.get("stat_name"));
             ps.setBigDecimal(5, (BigDecimal) map.get("stat_value"));
+            if(map.containsKey("timestamp")) {
+                ps.setTimestamp(6, (Timestamp) map.get("timestamp"));
+            } else {
+                ps.setTimestamp(6, new Timestamp(new Date().getTime()));
+            }
 
             if (ps.executeUpdate() > 0) {
 
@@ -393,5 +403,76 @@ public class StatsDAO {
 
         return json;
     }
+    
+    public JsonObject listGamemodes(String uuid) {
+        
+        HashMap<String, Object> map = new HashMap();
+        map.put("uuid", uuid);
+        
+        JsonObject json = new JsonObject();
+        json.put("status", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        json.put("success", false);
+        json.put("message", "An unhandled error occurred.");
+
+        Connection conn = daoFactory.getConnection();
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+
+        try {
+
+            ps = conn.prepareStatement(QUERY_LIST_GAMEMODES);
+
+
+                JsonObject p = (JsonObject) daoFactory.getPlayer().find(map).get("player");
+                if (p == null) {
+                    json.put("success", true);
+                    json.put("status", HttpServletResponse.SC_OK);
+                    json.put("message", "Player with that UUID does not exist.");
+
+                    return json;
+                }
+                
+                ps.setInt(1, (Integer) p.get("id"));
+
+            if (ps.execute()) {
+                JsonArray gamemodes = new JsonArray();
+                rs = ps.getResultSet();
+
+                json.put("success", true);
+                json.put("status", HttpServletResponse.SC_OK);
+                json.put("message", "No gamemodes.");
+
+                while (rs.next()) {
+                    gamemodes.add(rs.getString("gamemode"));
+                    json.put("status", HttpServletResponse.SC_OK);
+                    json.put("message", "Found " + gamemodes.size() + " gamemode(s).");
+                }
+
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (rs != null) {
+                try {
+                    rs.close();
+                    rs = null;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            if (ps != null) {
+                try {
+                    ps.close();
+                    ps = null;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        return json;
+    }
+
 
 }

@@ -26,7 +26,7 @@ public class PlayerServlet extends HttpServlet {
             
             HashMap<String, Object> map = new HashMap<>();
             
-            if(request.getParameter("uuid") != null) map.put("uuid", request.getParameter("uuid"));
+            if(request.getParameter("uuid") != null) map.put("uuid", request.getParameter("uuid").replaceAll("-", ""));
             
             out.write(Jsoner.serialize(daoFactory.getPlayer().find(map)));
 
