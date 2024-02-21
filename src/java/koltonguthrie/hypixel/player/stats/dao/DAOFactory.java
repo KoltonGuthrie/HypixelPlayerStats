@@ -51,7 +51,7 @@ public final class DAOFactory {
         }
     }
 
-    public Connection getConnection() {
+    Connection getConnection() {
         return conn;
     }
 
