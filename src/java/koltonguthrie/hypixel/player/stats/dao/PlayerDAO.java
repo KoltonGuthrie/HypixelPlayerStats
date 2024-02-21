@@ -53,7 +53,7 @@ public class PlayerDAO {
 
             ps = conn.prepareStatement(QUERY_INSERT_PLAYER, Statement.RETURN_GENERATED_KEYS);
 
-            ps.setString(1, ((String) map.get("uuid")).replaceAll("-", QUERY_FIND_PLAYER));
+            ps.setString(1, ((String) map.get("uuid")).replaceAll("-", ""));
 
             ps.executeUpdate();
 
@@ -104,12 +104,11 @@ public class PlayerDAO {
     }
 
     public JsonObject find(HashMap<String, Object> map) {
-        System.out.println(map);
         JsonObject json = new JsonObject();
         json.put("status", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         json.put("success", false);
         json.put("message", "An unhandled error occurred.");
-
+  
         if (!((map.containsKey("uuid") && map.get("uuid") != null) || map.containsKey("id"))) {
             json.put("status", HttpServletResponse.SC_BAD_REQUEST);
             json.put("message", "Bad request.");
@@ -121,9 +120,8 @@ public class PlayerDAO {
         ResultSet rs = null;
 
         try {
-
             ps = conn.prepareStatement(QUERY_FIND_PLAYER);
-
+            
             if (map.containsKey("id")) {
                 ps.setInt(1, (Integer) map.get("id"));
                 ps.setInt(2, (Integer) map.get("id"));
@@ -131,9 +129,8 @@ public class PlayerDAO {
                 ps.setNull(1, Types.INTEGER);
                 ps.setNull(2, Types.INTEGER);
             }
-
+            
             if (map.containsKey("uuid")) {
-                System.out.println(map.get("uuid"));
                 ps.setString(3, ((String) map.get("uuid")).replaceAll("-", ""));
                 ps.setString(4, ((String) map.get("uuid")).replaceAll("-", ""));
             } else {
@@ -162,6 +159,8 @@ public class PlayerDAO {
             }
 
         } catch (Exception e) {
+            System.out.println(e);
+
             e.printStackTrace();
         } finally {
             if (rs != null) {

@@ -11,6 +11,7 @@
     
     if(uuid == null) {
         response.sendRedirect("home.jsp#noUUID");
+        return;
     }
     
     DAOFactory daoFactory = null;
@@ -29,9 +30,10 @@
     map.put("uuid", uuid);
     
     JsonObject player = (JsonObject) daoFactory.getPlayer().find(map).get("player");
-
-    if (player  == null) {
+    
+    if (player == null) {
         response.sendRedirect("home.jsp#unknownPlayer");
+        return;
     }
 %>
 
